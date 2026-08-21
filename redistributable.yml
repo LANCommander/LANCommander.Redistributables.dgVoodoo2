@@ -1,0 +1,95 @@
+# Identity ---------------------------------------------------------------------
+#
+# Id and every GUID under Scripts are generated ONCE and must never change.
+#
+# RedistributableImporter matches an incoming record with
+#   r.Id == record.Id || r.Name == record.Name
+# so a regenerated GUID makes every published release import as a brand new
+# redistributable instead of updating the existing one.
+
+Id: 35811e3a-2d3c-4e8d-b3a3-1438d3d47c36
+Name: dgVoodoo2
+
+Description: >
+  Wraps Glide, DirectDraw and Direct3D 1-9 onto modern Direct3D 11/12, so games
+  written for 3Dfx Voodoo hardware or early DirectX run on current GPUs. Fixes the
+  black screens, 8-bit palette corruption, broken alt-tab and 640x480 lock that
+  late-90s and early-2000s titles hit on Windows 10 and 11. Attach it per game and
+  enable only the APIs that game actually uses.
+
+Notes: >
+  dgVoodoo2 is (c) 2013-2026 Dege and is proprietary freeware. Its terms forbid
+  bundling it inside a launcher, so no dgVoodoo binaries ship in this package --
+  the Package script downloads the complete upstream archive onto your own server.
+  See LICENSES/NOTICE.md.
+
+LastKnownVersion: "2.87.3"
+
+# Payload ----------------------------------------------------------------------
+Source:
+  # 'none' is forced by the upstream license, not chosen. dgVoodoo's terms say you
+  # "cannot bundle dgVoodoo inside launchers or frameworks, for general use across
+  # multiple applications", which is exactly what an .LCX archive would be. The
+  # published package therefore carries scripts and an option schema only, and
+  # Scripts/Package.ps1 fetches the full archive from upstream onto the server.
+  #
+  # source.ps1 still runs here: it reports the upstream version so the scheduled
+  # check fires, and it refreshes Reference/dgVoodoo.conf. It is written so that it
+  # cannot emit a DLL even if it is called with -OutputPath by mistake.
+  Mode: none
+
+  Resolver: github-release
+  Url: https://github.com/dege-diosg/dgVoodoo2
+
+  # Each release also carries a debug build (_dbg), a developer package (_dev64),
+  # the API headers (dgVoodooAPI_287.zip) and a standalone WinMM.zip. Only the
+  # plain versioned archive is the redistributable one.
+  AssetPattern: '^dgVoodoo2_[0-9_]+\.zip$'
+
+# Configuration ----------------------------------------------------------------
+#
+# Source.Mode is 'none', so there is no payload for ConfigPaths to resolve against
+# and the config has to be committed. Reference/ is refreshed by the scheduled
+# upstream check, which carries it in the same pull request as the regenerated
+# schema.
+ConfigPaths:
+  - Reference/dgVoodoo.conf
+
+# dgVoodoo documents a whole section's options in one comment block above a blank
+# line, and the INI parser drops a comment block at the first blank line, so
+# ChoiceCommentPattern reaches none of it. Parse-Config.ps1 understands the real
+# layout and recovers both the descriptions and the choice lists.
+ConfigFormat: custom
+
+# Scripts ----------------------------------------------------------------------
+#
+# Platforms is Windows on every client-side script: dgVoodoo wraps Windows
+# graphics APIs and has no meaning on a Linux client. Package is deliberately
+# unset, because it runs on the server, which may be either.
+#
+# Nothing here needs elevation. Every file this redistributable writes lives
+# inside the game's own install directory.
+Scripts:
+  DetectInstall:
+    Id: 5d1ab497-a75b-4169-a924-2fc42f060c7a
+    Platforms: Windows
+    Description: Checks whether the enabled dgVoodoo DLLs are already deployed for this game at the current version.
+  Install:
+    Id: 00d0cf05-a345-436a-ab1b-f540c2b1f457
+    Platforms: Windows
+    Description: Copies the enabled dgVoodoo DLLs next to the game executable and records what it placed.
+  Uninstall:
+    Id: 32f86b9b-94ab-4240-a97e-1385a92ccd1f
+    Platforms: Windows
+    Description: Removes only the files this redistributable placed in the game directory.
+  BeforeStart:
+    Id: a9be88e4-167c-4339-b3c0-ff654ef1ee66
+    Platforms: Windows
+    Description: Writes the resolved per-game options into dgVoodoo.conf next to the game executable.
+  AfterStop:
+    Id: fd099bad-64d0-45f7-94c6-a3c0177fd1ad
+    Platforms: Windows
+    Description: Removes the generated dgVoodoo.conf so stale forced settings do not persist.
+  Package:
+    Id: 43db9f67-4bd5-4c11-b7c4-19bea1387f69
+    Description: Server-side downloader that fetches the complete upstream archive from dege-diosg/dgVoodoo2.

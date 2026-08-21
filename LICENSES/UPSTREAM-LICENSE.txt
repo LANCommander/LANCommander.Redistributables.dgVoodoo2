@@ -1,0 +1,26 @@
+dgVoodoo 2
+Copyright (c) 2013-2026 Dege
+
+Homepage:  https://dege.freeweb.hu/dgVoodoo2/
+Releases:  https://github.com/dege-diosg/dgVoodoo2
+Terms:     https://dege.freeweb.hu/dgVoodoo2/ReadmeGeneral/
+
+dgVoodoo 2 is proprietary freeware. It is not open source and carries no OSI
+license. The author states his redistribution terms in the "Redistribution rights"
+section of the general readme, reproduced verbatim below.
+
+--------------------------------------------------------------------------------
+1. Redistribution rights
+
+You can freely ship your game or game mod with individual dgVoodoo files included.
+If you want to host or re-distribute dgVoodoo as a standalone component for any
+reason then you must provide the full .zip package. You cannot bundle dgVoodoo
+inside launchers or frameworks, for general use across multiple applications
+--------------------------------------------------------------------------------
+
+The author additionally asks that game publishers without a contract with him do
+not use dgVoodoo for distributed games.
+
+Note that dgVoodoo 2 is a separate project from dgVoodoo 1.x, which is archived
+and licensed under the LGPL 2.1. The two share no code, and these terms are for
+dgVoodoo 2 only.

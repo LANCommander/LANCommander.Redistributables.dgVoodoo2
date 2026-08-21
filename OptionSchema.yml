@@ -1,0 +1,583 @@
+Options:
+  Deployment:
+    DisplayName: Deployment
+    Description: |
+      Which dgVoodoo libraries to place in this game's directory. These are not dgVoodoo settings -- they control what gets installed at all.
+    Options:
+      Architecture:
+        Type: choice
+        DisplayName: Architecture
+        Description: |
+          Must match the game executable, not the operating system. Nearly every game old enough to need dgVoodoo is 32-bit, so x86 is almost always right. Note that upstream ships no 64-bit DirectDraw, Direct3D 8 or Direct3D Immediate Mode, because no 64-bit game ever used them -- on x64 only Direct3D 9 and Glide can be deployed.
+        Default: x86
+        Choices:
+        - Value: x86
+          DisplayName: 32-bit (x86)
+        - Value: x64
+          DisplayName: 64-bit (x64)
+      DirectDraw:
+        Type: bool
+        DisplayName: Wrap DirectDraw
+        Description: |
+          Places DDraw.dll and D3DImm.dll. Enable for 2D games and for early 3D titles that render through Direct3D Immediate Mode (roughly DirectX 1 to 6). This is the usual fix for a game that opens to a black screen or refuses 8-bit or 16-bit colour on modern Windows. 32-bit only.
+        Default: "false"
+      Direct3D8:
+        Type: bool
+        DisplayName: Wrap Direct3D 8
+        Description: |
+          Places D3D8.dll, for games built against DirectX 8. 32-bit only.
+        Default: "false"
+      Direct3D9:
+        Type: bool
+        DisplayName: Wrap Direct3D 9
+        Description: |
+          Places D3D9.dll, for games built against DirectX 9. Enable it only for a game with a real problem: DirectX 9 still works natively on current Windows, so wrapping it usually adds risk without fixing anything.
+        Default: "false"
+      Glide:
+        Type: bool
+        DisplayName: Wrap Glide (3Dfx)
+        Description: |
+          Places Glide.dll, Glide2x.dll and Glide3x.dll, emulating 3Dfx Voodoo hardware. Enable for games whose best or only accelerated renderer was 3Dfx -- their Glide mode often looks and runs better than their software or Direct3D paths.
+        Default: "false"
+  General:
+    DisplayName: General
+    Description: Output device, screen mode and image adjustment. Applies to every wrapped API.
+    Options:
+      OutputAPI:
+        Type: choice
+        DisplayName: Output API
+        Description: |
+          Which modern Direct3D backend presents the wrapped output. bestavailable picks the highest your GPU supports and is almost always right. Pin an older feature level only to work around a driver bug; d3d11warp is Microsoft's software renderer, which is very slow and is for diagnosis only.
+        Default: bestavailable
+        Choices:
+        - d3d11warp
+        - d3d11_fl10_0
+        - d3d11_fl10_1
+        - d3d11_fl11_0
+        - d3d12_fl11_0
+        - d3d12_fl12_0
+        - bestavailable
+      Adapters:
+        Type: string
+        Description: '"all", or the ordinal of the adapter (1, ...)'
+        Default: all
+      FullScreenOutput:
+        Type: string
+        Description: '"default", or the ordinal of the output on the adapter (1, ...)'
+        Default: default
+      FullScreenMode:
+        Type: bool
+        DisplayName: Full Screen
+        Description: |
+          Force the game full screen, or clear it to force windowed. Windowed mode is often the quickest fix for alt-tab crashes and for multi-monitor setups.
+        Default: "true"
+      ScalingMode:
+        Type: choice
+        DisplayName: Scaling Mode
+        Description: |
+          How a low-resolution image is fitted to the screen. unspecified follows the control panel default. The _ar variants preserve aspect ratio rather than stretching; stretched_4_3 forces a 4:3 box on a widescreen monitor, which is usually what an old game should look like. The _crt and _c64 variants add period-appropriate scanline filtering.
+        Default: unspecified
+        Choices:
+        - unspecified
+        - centered
+        - stretched
+        - centered_ar
+        - stretched_ar
+        - stretched_ar_crt
+        - stretched_4_3
+        - stretched_4_3_crt
+        - stretched_4_3_c64
+      ProgressiveScanlineOrder:
+        Type: bool
+        Default: "false"
+      EnumerateRefreshRates:
+        Type: bool
+        DisplayName: Enumerate Refresh Rates
+        Description: |
+          Advertise refresh rates alongside resolutions. A few games enumerate every combination and stall on startup, which is why this is off by default.
+        Default: "false"
+      Brightness:
+        Type: int
+        DisplayName: Brightness
+        Description: Post-processing brightness as a percentage. 100 leaves the image unchanged.
+        Default: "100"
+      Color:
+        Type: int
+        DisplayName: Saturation
+        Description: Post-processing colour saturation as a percentage. 100 leaves the image unchanged.
+        Default: "100"
+      Contrast:
+        Type: int
+        DisplayName: Contrast
+        Description: Post-processing contrast as a percentage. 100 leaves the image unchanged.
+        Default: "100"
+      InheritColorProfileInFullScreenMode:
+        Type: bool
+        Description: Enabled by default and can only be disabled only when a D3D11 output API is explicitly selected. Disabled case is intended for avoiding extra rendering resources on old hardware for better performance, if required.
+        Default: "true"
+      KeepWindowAspectRatio:
+        Type: bool
+        DisplayName: Keep Window Aspect Ratio
+        Description: Constrain manual window resizing to the game's own aspect ratio.
+        Default: "true"
+      CaptureMouse:
+        Type: bool
+        DisplayName: Capture Mouse
+        Description: |
+          Confine the pointer to the game window. Useful for games that lose mouse input at the screen edge on a multi-monitor desktop.
+        Default: "true"
+      CenterAppWindow:
+        Type: bool
+        DisplayName: Centre Window
+        Description: Centre the game window on screen when it starts in windowed mode.
+        Default: "false"
+      DisableScreenSaver:
+        Type: bool
+        Description: If true then screen saver and monitor sleep mode are disabled while rendering through dgVoodoo is active
+        Default: "false"
+  GeneralExt:
+    DisplayName: General (Advanced)
+    Description: |
+      Presentation, scaling and timing internals. Upstream hides these behind its control panel's advanced toggle; most games need none of them.
+    Options:
+      DesktopResolution:
+        Type: string
+        Description: Desktop (native) resolution can be forced for dgVoodoo's internal calculations. Useful for rare applications that pre-set the desktop to other than the native resolution before dgVoodoo gets in action. Only the compact format can be used here, and applies to all outputs of the desktop.
+      DesktopBitDepth:
+        Type: string
+        Description: You can define what screen bit depth should be reported through dgVoodoo (8, 16, 32)
+      DeframerSize:
+        Type: int
+        Description: When resolution is forced to other than the app default then a black frame is drawn around the output image coming from a wrapped API to remove scaling artifacts - frame thickness can be defined in pixels (max 16, 0 = disable)
+        Default: "1"
+      ImageScaleFactor:
+        Type: int
+        Description: Integer factor for scaling the output image coming from a wrapped API Always done by nearest point filtering, independent on scaling mode (0 = max available) Separate factors can be defined for horizontal and vertical scaling by subproperties, e.g. ImageScaleFactor = x:3, y:2
+        Default: "1"
+      CursorScaleFactor:
+        Type: int
+        Description: Integer factor for scaling the emulated hardware mouse (max 16) (0 = automatic, 1 = no scale, 2 = double scale, ...)
+        Default: "0"
+      DisplayROI:
+        Type: string
+        Description: Display region of interest If scaling is done by the dgVoodoo then you can define a subrect of the output image, coming from a wrapped API, to be displayed. The defined subrect is mapped to the display output according to the current scaling mode It can be useful for applications rendering a widescreen subimage into a 4:3 resolution; in this case you can scale up that subimage to (nearly) fill the whole screen on a widescreen monitor. DisplayROI empty value means the whole image. DisplayROI value can be a proportion in form of %d_%d or a pixel size (%d|%d) Pos subproperty is not mandatory and can be 'centered' or a pixel position (%d|%d)
+      Resampling:
+        Type: choice
+        Description: 'When scaling is done by the dgVoodoo for the given scaling mode, you can choose which filter is to be used for resampling the output image Available filters are: "pointsampled", "bilinear", "bicubic", "lanczos-2", "lanczos-3"'
+        Default: bilinear
+        Choices:
+        - pointsampled
+        - bilinear
+        - bicubic
+        - lanczos-2
+        - lanczos-3
+      PresentationModel:
+        Type: choice
+        Description: 'Low-level swapchain swap effect: if you know what you are doing then it can be overridden here. Flip models are better suited for modern OS features like auto HDR, while plain legacy models provide the best presentation performance under ideal conditions Not all model + output API + OS version combinations are supported. "auto", "discard", "seq", "flip_discard", "flip_seq"'
+        Default: auto
+        Choices:
+        - auto
+        - discard
+        - seq
+        - flip_discard
+        - flip_seq
+      ColorSpace:
+        Type: choice
+        Description: 'Color space of the swap chain: "appdriven" - an application can choose argb2101010 through D3D9, but it means the legacy argb8888_srgb in any other case "argb8888_srgb" - Legacy 32 bit output for SDR displays "argb2101010_sdr" - 32 bit extended precision for SDR displays "argb2101010_sdr_wcg" - Wide Color Gamut format for SDR displays (available from Windows 11 22H2) "argb16161616_hdr" - Float16 HDR output (available from Windows 10 1709)'
+        Default: appdriven
+        Choices:
+        - appdriven
+        - argb8888_srgb
+        - argb2101010_sdr
+        - argb2101010_sdr_wcg
+        - argb16161616_hdr
+      WatermarkDisplayDuration:
+        Type: int
+        Description: Display duration in secs for the watermark(s) if they are enabled (per swapchain) 0 or undefined means infinite time
+        Default: "0"
+      FreeMouse:
+        Type: bool
+        Description: If true then physical mouse is free to move inside the game window when using emulated scaling and/or application and forced resolution differs; can be useful when a game relies on the physical window size
+        Default: "false"
+      WindowedAttributes:
+        Type: string
+        DisplayName: Windowed Attributes
+        Description: |
+          Any combination of borderless, alwaysontop and fullscreensize, separated by commas. Leave empty for normal windowed behaviour.
+        Choices:
+        - borderless
+        - alwaysontop
+        - fullscreensize
+      FullscreenAttributes:
+        Type: string
+        Description: 'You can define attributes for fullscreen appearance (separated by commas): "fake" - forces fake fullscreen mode with a screen-size window'
+      FPSLimit:
+        Type: int
+        Description: An integer or rational (fractional) value, 0 = unlimited
+        Default: "0"
+      Environment:
+        Type: string
+        Description: "Software environment in which dgVoodoo is running: can be left unspecified (native) or can be set to 'DosBox' or 'QEmu'."
+      SystemHookFlags:
+        Type: string
+        DisplayName: System Hook Flags
+        Description: |
+          Any combination of gdi and cursor, separated by commas. gdi shows content the game draws through GDI, such as older in-engine video playback; cursor suppresses a doubled mouse pointer. 32-bit DirectX only.
+        Choices:
+        - gdi
+        - cursor
+  Glide:
+    DisplayName: Glide (3Dfx)
+    Description: |
+      Emulated 3Dfx Voodoo hardware, for games written against the Glide API. Irrelevant unless the Glide option under Deployment is enabled.
+    Options:
+      VideoCard:
+        Type: choice
+        DisplayName: Emulated Video Card
+        Description: |
+          Which 3Dfx card to pretend to be. Games query this and enable features accordingly, so it changes what the game will render. voodoo_2 is the safe default. voodoo_graphics is the original 1996 card, voodoo_rush is the rare 2D/3D hybrid, voodoo_banshee and other_greater expose later feature sets that a few games check for before enabling extras.
+        Default: voodoo_2
+        Choices:
+        - voodoo_graphics
+        - voodoo_rush
+        - voodoo_2
+        - voodoo_banshee
+        - other_greater
+      OnboardRAM:
+        Type: int
+        Description: in MBs
+        Default: "8"
+      MemorySizeOfTMU:
+        Type: int
+        Description: in kBs
+        Default: "4096"
+      NumberOfTMUs:
+        Type: int
+        Default: "2"
+      TMUFiltering:
+        Type: choice
+        DisplayName: Texture Filtering
+        Description: |
+          Override how the emulated texture units filter. appdriven respects whatever the game asks for. pointsampled forces the hard-edged look of the original hardware; bilinear forces smoothing on a game that did not request it.
+        Default: appdriven
+        Choices:
+        - appdriven
+        - pointsampled
+        - bilinear
+      DisableMipmapping:
+        Type: bool
+        DisplayName: Disable Mipmapping
+        Description: |
+          Turn off mipmapping entirely. Sharpens distant textures at the cost of shimmering, and matches how some Glide titles were originally meant to look.
+        Default: "false"
+      Resolution:
+        Type: string
+        DisplayName: Resolution
+        Description: |
+          Leave as unforced to keep whatever the game asks for. Otherwise a keyword (max, desktop, max_fhd, max_qhd, optionally suffixed _isf to keep integer scaling), a multiplier such as 2x, or an explicit mode like 1024x768@60.
+        Default: unforced
+        Choices:
+        - unforced
+        - max
+        - max_isf
+        - max_fhd
+        - max_fhd_isf
+        - max_qhd
+        - max_qhd_isf
+        - desktop
+        - 1024x768@60
+        - 512x384
+      Antialiasing:
+        Type: choice
+        Description: '"off", "appdriven", "2x", "4x", "8x", "16x" (your GPU must support the chosen one)'
+        Default: appdriven
+        Choices:
+        - "off"
+        - appdriven
+        - 2x
+        - 4x
+        - 8x
+        - 16x
+      EnableGlideGammaRamp:
+        Type: bool
+        DisplayName: Enable Gamma Ramp
+        Description: Let the game set gamma through Glide. Disable if a title washes out the picture.
+        Default: "true"
+      ForceVerticalSync:
+        Type: bool
+        DisplayName: Force Vertical Sync
+        Description: Force vsync for Glide output regardless of what the game requests.
+        Default: "true"
+      ForceEmulatingTruePCIAccess:
+        Type: bool
+        Default: "false"
+      16BitDepthBuffer:
+        Type: bool
+        DisplayName: 16-bit Depth Buffer
+        Description: |
+          Use a 16-bit depth buffer as real Voodoo hardware did. Reproduces period- accurate z-fighting; leave off unless a game depends on that behaviour.
+        Default: "false"
+      3DfxWatermark:
+        Type: bool
+        DisplayName: 3Dfx Watermark
+        Description: Draw the 3Dfx logo, as the original Voodoo drivers did.
+        Default: "true"
+      3DfxSplashScreen:
+        Type: bool
+        DisplayName: 3Dfx Splash Screen
+        Description: Show the 3Dfx boot splash the original hardware displayed at startup.
+        Default: "false"
+      PointcastPalette:
+        Type: bool
+        Default: "false"
+      EnableInactiveAppState:
+        Type: bool
+        Default: "false"
+  GlideExt:
+    DisplayName: Glide (Advanced)
+    Description: Dithering behaviour for the Glide emulation.
+    Options:
+      DitheringEffect:
+        Type: choice
+        DisplayName: Dithering Effect
+        Description: |
+          Real Voodoo hardware rendered at 16-bit and dithered to hide banding. pure32bit renders cleanly at full precision, which looks better but not authentic. dither2x2 and dither4x4 reproduce the original matrices.
+        Default: pure32bit
+        Choices:
+        - pure32bit
+        - dither2x2
+        - dither4x4
+      Dithering:
+        Type: choice
+        DisplayName: Dithering
+        Description: |
+          Whether to dither at all. appdriven follows the game, forcealways applies it everywhere, disabled turns it off entirely.
+        Default: forcealways
+        Choices:
+        - disabled
+        - appdriven
+        - forcealways
+      DitherOrderedMatrixSizeScale:
+        Type: int
+        Description: integer scale value for dither matrix size 1 = normal, 2 = double size, etc. 0 = automatic (the aim is to have some retro feel&look)
+        Default: "0"
+  DirectX:
+    DisplayName: DirectX
+    Description: |
+      Emulated video card and filtering for DirectDraw and Direct3D 1-9 games. Irrelevant unless one of the DirectDraw or Direct3D options is enabled.
+    Options:
+      DisableAndPassThru:
+        Type: bool
+        DisplayName: Disable and Pass Through
+        Description: |
+          Hand every call straight to the real system DirectX, disabling the wrapper while leaving the files in place. A diagnostic switch: turn it on to confirm a problem is dgVoodoo's doing rather than the game's.
+        Default: "false"
+      VideoCard:
+        Type: choice
+        DisplayName: Emulated Video Card
+        Description: |
+          Which card to report to the game. internal3D is dgVoodoo's own fully featured device and is the right answer for nearly everything. svga is a plain 2D device with no 3D acceleration. The named period cards exist for games that check for specific hardware before enabling an effect, or that refuse to start on anything they do not recognise.
+        Default: internal3D
+        Choices:
+        - svga
+        - internal3D
+        - geforce_ti_4800
+        - ati_radeon_8500
+        - matrox_parhelia-512
+        - geforce_fx_5700_ultra
+        - geforce_9800_gt
+      VRAM:
+        Type: int
+        Description: in MBs (default) or in GBs (e.g. VRAM = 2GB)
+        Default: "256"
+      Filtering:
+        Type: choice
+        Description: '"appdriven", "pointsampled", "bilinear", "pointmip", "linearmip", "trilinear" or the integer value of an anisotropic filtering level (1-16)'
+        Default: appdriven
+        Choices:
+        - appdriven
+        - pointsampled
+        - bilinear
+        - pointmip
+        - linearmip
+        - trilinear
+      Mipmapping:
+        Type: choice
+        DisplayName: Mipmapping
+        Description: |
+          appdriven leaves mipmapping to the game. disabled turns it off. The autogen options generate mipmaps the game never supplied, which sharply reduces shimmering on distant textures in games that predate the technique.
+        Default: appdriven
+        Choices:
+        - appdriven
+        - disabled
+        - autogen_point
+        - autogen_bilinear
+      KeepFilterIfPointSampled:
+        Type: bool
+        Description: if enabled then forced filtering affects only non-point sampled textures
+        Default: "false"
+      Resolution:
+        Type: string
+        DisplayName: Resolution
+        Description: |
+          Leave as unforced to keep whatever the game asks for. Otherwise a keyword (max, desktop, max_fhd, max_qhd, optionally suffixed _isf to keep integer scaling), a multiplier such as 2x, or an explicit mode like 1024x768@60. Forcing a resolution is the most common reason to use dgVoodoo at all, but some games lay out their interface for 4:3 and will stretch.
+        Default: unforced
+      Antialiasing:
+        Type: string
+        DisplayName: Antialiasing
+        Description: |
+          Force multisampling: off, appdriven to respect the game's own setting, or 2x through 16x if your GPU supports it. Can blur 2D interface elements in older titles.
+        Default: appdriven
+      AppControlledScreenMode:
+        Type: bool
+        DisplayName: App Controlled Screen Mode
+        Description: Let the game choose full screen or windowed itself, rather than forcing it.
+        Default: "true"
+      DisableAltEnterToToggleScreenMode:
+        Type: bool
+        DisplayName: Disable Alt+Enter
+        Description: |
+          Stop Alt+Enter switching between full screen and windowed. Worth enabling for games that use Alt+Enter for something of their own.
+        Default: "true"
+      Bilinear2DOperations:
+        Type: bool
+        Description: if enabled then DirectDraw Blit and CPU-written data is transferred with bilinear scaling
+        Default: "false"
+      PhongShadingWhenPossible:
+        Type: bool
+        DisplayName: Phong Shading
+        Description: |
+          Shade per pixel instead of per vertex where the fixed-function pipeline allows it. Smooths lighting in early 3D games, at some cost, and is not what the original hardware did.
+        Default: "false"
+      ForceVerticalSync:
+        Type: bool
+        DisplayName: Force Vertical Sync
+        Description: |
+          Force vsync regardless of what the game asks for. Fixes tearing, and often also fixes old games whose physics or timers run away on a fast GPU.
+        Default: "false"
+      DgVoodooWatermark:
+        Type: bool
+        DisplayName: dgVoodoo Watermark
+        Description: |
+          Draw dgVoodoo's logo over the game. Useful once, to confirm the wrapper is actually loading.
+        Default: "true"
+      FastVideoMemoryAccess:
+        Type: bool
+        DisplayName: Fast Video Memory Access
+        Description: |
+          Speed up direct video memory access at the cost of strict correctness. Helps software-rendering-era games that write pixels themselves; can corrupt output in others.
+        Default: "false"
+      DisableD3DTnLDevice:
+        Type: bool
+        Description: if disabled then D3D TnL device is not enumerated and hardware Transform&Light vertex processing is not available
+        Default: "false"
+  DirectXExt:
+    DisplayName: DirectX (Advanced)
+    Description: |
+      Resolution enumeration, dithering and buffer formats reported to the game. Reach for these only when a specific title misbehaves.
+    Options:
+      AdapterIDType:
+        Type: choice
+        Description: "\"nvidia\", \"amd\", \"intel\" or leave it undefined You can define what type of driver version and vendor id's the wrapper should report to the application; Some games rely on that information so it can be useful for them Can be defined only for SVGA and Internal3D card types; the others have their own wired information VendorID, DeviceID, SubsystemID, RevisionID: Can be defined only for SVGA and Internal3D card types You can overwrite these properties even if a non-default AdapterIDType is defined; say, you defined an nvidia id type but would like to refine the vendor id"
+        Choices:
+        - nvidia
+        - amd
+        - intel
+      DefaultEnumeratedResolutions:
+        Type: choice
+        Description: you can define what resolutions should be enumerated to the application by default "all", "classics", "none"
+        Default: all
+        Choices:
+        - all
+        - classics
+        - none
+      ExtraEnumeratedResolutions:
+        Type: string
+        DisplayName: Extra Enumerated Resolutions
+        Description: |
+          Up to sixteen additional modes to advertise to the game, comma separated. Use it when a game renders at any resolution but only offers what the adapter reports. Accepts explicit modes, or max, max_4_3 and max_16_9 with an optional @refresh rate.
+        Choices:
+        - max
+        - max@refrate
+        - max_4_3
+        - max_4_3@refrate
+        - max_16_9
+        - max_16_9@refrate
+        - max_4_3@60
+      EnumeratedResolutionBitdepths:
+        Type: string
+        DisplayName: Enumerated Resolution Bit Depths
+        Description: |
+          Which colour depths to advertise: all, or any subset of 8, 16 and 32 separated by commas. Narrowing it can steer a game that picks a bad mode on its own.
+        Default: all
+        Choices:
+        - "8"
+        - "16"
+        - "32"
+        - all
+      DitheringEffect:
+        Type: choice
+        DisplayName: Dithering Effect
+        Description: |
+          high_quality uses a modern error-diffusion pass. The ordered variants reproduce the blockier matrices period hardware used.
+        Default: high_quality
+        Choices:
+        - high_quality
+        - ordered2x2
+        - ordered4x4
+      Dithering:
+        Type: choice
+        DisplayName: Dithering
+        Description: |
+          When to dither. appdriven follows the game, forceon16bit dithers only when the game selects a 16-bit mode, forcealways applies it everywhere, disabled turns it off.
+        Default: forcealways
+        Choices:
+        - disabled
+        - appdriven
+        - forceon16bit
+        - forcealways
+      DitherOrderedMatrixSizeScale:
+        Type: int
+        Description: integer scale value for dither matrix size 1 = normal, 2 = double size, etc. 0 = automatic
+        Default: "0"
+      DepthBuffersBitDepth:
+        Type: choice
+        Description: internal bit depth of depth/stencil buffers for 3D rendering (32 bit is not recommended) "appdriven", "forcemin24bit", "force32bit"
+        Default: appdriven
+        Choices:
+        - appdriven
+        - forcemin24bit
+        - force32bit
+      Default3DRenderFormat:
+        Type: choice
+        Description: default format of 3D rendering "auto", "argb8888", "argb2101010", "argb16161616" auto corresponds to the selected color space argb2101010 has the benefit that it is still 32 bit but it can corrupt the rendering because of the lowered alpha bits, not recommended
+        Default: auto
+        Choices:
+        - auto
+        - argb8888
+        - argb2101010
+        - argb16161616
+      MaxVSConstRegisters:
+        Type: int
+        Description: Max number of vertex shader constant registers (DX8/9 only) Can be defined only for SVGA and Internal3D card types Valid values are 256 (default), 512 or 1024
+        Default: "256"
+      D3D12BoundsChecking:
+        Type: bool
+        Description: If enabled then the D3D12 backend does bound checking on vs const register file accesses (D3D8/9 only) It should always be enabled to be fully compatible with the D3D8/9 specs but unfortunately that can cause performance loss while the vast majority of games do not need it; try to enable it if you experience a GPU crash with a D3D8/9 game
+        Default: "false"
+      MSD3DDeviceNames:
+        Type: bool
+        Description: if true then original Microsoft D3D device names are exposed (some applications check for them and they fail)
+        Default: "false"
+      SmoothedDepthSampling:
+        Type: bool
+        Description: if true then extra smoothing is added to depth textures when they are sampled
+        Default: "true"
+      DeferredScreenModeSwitch:
+        Type: bool
+        Description: If true the switching to full screen is deferred after the application initialized the DirectX device; can be useful for games that don't expect rendering window changes during initialization and crash
+        Default: "false"
+      PrimarySurfaceBatchedUpdate:
+        Type: bool
+        Description: If true then direct changes of the primary surface are batched together for presenting them If false then each change is instantly presented (debug-like mode)
+        Default: "false"

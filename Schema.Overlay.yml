@@ -1,0 +1,421 @@
+# Curation layered over the schema Parse-Config.ps1 generates from
+# Reference/dgVoodoo.conf.
+#
+# Most of the work is already done by the time this file is applied: the parser
+# recovers upstream's own descriptions and choice lists out of the section comment
+# blocks. What is left here is the three things a parser cannot know -- which
+# options are dangerous, which "choice lists" are really free-form, and what the
+# raw keys mean to somebody who has never used dgVoodoo.
+#
+# There is deliberately NO CommandTemplate and no GuestPlatforms. dgVoodoo is not a
+# command wrapper: it works by sitting in the game's directory under the name of the
+# API it replaces, so there is no launch line to rewrite and no platform being
+# bridged. Test-OptionSchema warns if GuestPlatforms is set without a
+# CommandTemplate, which is the right warning to leave un-triggered.
+
+# Groups are left as upstream's own INI sections rather than regrouped into
+# friendlier names. Two reasons: moving an option changes its dot-path and orphans
+# per-game values already stored against it, and these sections are exactly how
+# dgVoodoo's own control panel presents its settings, so an administrator who has
+# used dgVoodoo before already knows where to look. The *Ext sections are upstream's
+# advanced tier, which is what their display names say.
+Groups:
+  Deployment:
+    DisplayName: Deployment
+    Description: >
+      Which dgVoodoo libraries to place in this game's directory. These are not
+      dgVoodoo settings -- they control what gets installed at all.
+    Include:
+      - Deployment.*
+
+  General:
+    DisplayName: General
+    Description: Output device, screen mode and image adjustment. Applies to every wrapped API.
+    Include:
+      - General.*
+
+  GeneralExt:
+    DisplayName: General (Advanced)
+    Description: >
+      Presentation, scaling and timing internals. Upstream hides these behind its
+      control panel's advanced toggle; most games need none of them.
+    Include:
+      - GeneralExt.*
+
+  Glide:
+    DisplayName: Glide (3Dfx)
+    Description: >
+      Emulated 3Dfx Voodoo hardware, for games written against the Glide API.
+      Irrelevant unless the Glide option under Deployment is enabled.
+    Include:
+      - Glide.*
+
+  GlideExt:
+    DisplayName: Glide (Advanced)
+    Description: Dithering behaviour for the Glide emulation.
+    Include:
+      - GlideExt.*
+
+  DirectX:
+    DisplayName: DirectX
+    Description: >
+      Emulated video card and filtering for DirectDraw and Direct3D 1-9 games.
+      Irrelevant unless one of the DirectDraw or Direct3D options is enabled.
+    Include:
+      - DirectX.*
+
+  DirectXExt:
+    DisplayName: DirectX (Advanced)
+    Description: >
+      Resolution enumeration, dithering and buffer formats reported to the game.
+      Reach for these only when a specific title misbehaves.
+    Include:
+      - DirectXExt.*
+
+Options:
+  # --- Authored: what to actually deploy ------------------------------------
+  #
+  # These have no counterpart in dgVoodoo.conf. They exist because dgVoodoo has no
+  # installer -- "installing" it means choosing which API stubs to drop next to the
+  # executable, and that choice is per game. Declaring a Type is what makes
+  # Merge-SchemaOverlay materialise them as real options rather than reporting them
+  # as stale curation.
+  #
+  # Every API defaults to off. dgVoodoo's DLLs are named after the system libraries
+  # they impersonate, so enabling one that the game did not need means intercepting
+  # an API that was working fine, which is the single most common way to break a
+  # game with dgVoodoo.
+  Deployment.Architecture:
+    Type: choice
+    DisplayName: Architecture
+    Description: >
+      Must match the game executable, not the operating system. Nearly every game
+      old enough to need dgVoodoo is 32-bit, so x86 is almost always right. Note
+      that upstream ships no 64-bit DirectDraw, Direct3D 8 or Direct3D Immediate
+      Mode, because no 64-bit game ever used them -- on x64 only Direct3D 9 and
+      Glide can be deployed.
+    Default: x86
+    Choices:
+      - { Value: 'x86', DisplayName: '32-bit (x86)' }
+      - { Value: 'x64', DisplayName: '64-bit (x64)' }
+
+  Deployment.DirectDraw:
+    Type: bool
+    DisplayName: Wrap DirectDraw
+    Description: >
+      Places DDraw.dll and D3DImm.dll. Enable for 2D games and for early 3D titles
+      that render through Direct3D Immediate Mode (roughly DirectX 1 to 6). This is
+      the usual fix for a game that opens to a black screen or refuses 8-bit or
+      16-bit colour on modern Windows. 32-bit only.
+    Default: "false"
+
+  Deployment.Direct3D8:
+    Type: bool
+    DisplayName: Wrap Direct3D 8
+    Description: >
+      Places D3D8.dll, for games built against DirectX 8. 32-bit only.
+    Default: "false"
+
+  Deployment.Direct3D9:
+    Type: bool
+    DisplayName: Wrap Direct3D 9
+    Description: >
+      Places D3D9.dll, for games built against DirectX 9. Enable it only for a game
+      with a real problem: DirectX 9 still works natively on current Windows, so
+      wrapping it usually adds risk without fixing anything.
+    Default: "false"
+
+  Deployment.Glide:
+    Type: bool
+    DisplayName: Wrap Glide (3Dfx)
+    Description: >
+      Places Glide.dll, Glide2x.dll and Glide3x.dll, emulating 3Dfx Voodoo hardware.
+      Enable for games whose best or only accelerated renderer was 3Dfx -- their
+      Glide mode often looks and runs better than their software or Direct3D paths.
+    Default: "false"
+
+  # --- Corrections the parser cannot make -----------------------------------
+  #
+  # Each of these harvested a choice list from upstream's documentation that is real
+  # but incomplete: the option also accepts free-form values, or a comma-separated
+  # combination, so locking it to a dropdown would remove working configurations.
+  Glide.Resolution:
+    Type: string
+    DisplayName: Resolution
+    Description: >
+      Leave as unforced to keep whatever the game asks for. Otherwise a keyword
+      (max, desktop, max_fhd, max_qhd, optionally suffixed _isf to keep integer
+      scaling), a multiplier such as 2x, or an explicit mode like 1024x768@60.
+
+  DirectX.Resolution:
+    Type: string
+    DisplayName: Resolution
+    Description: >
+      Leave as unforced to keep whatever the game asks for. Otherwise a keyword
+      (max, desktop, max_fhd, max_qhd, optionally suffixed _isf to keep integer
+      scaling), a multiplier such as 2x, or an explicit mode like 1024x768@60.
+      Forcing a resolution is the most common reason to use dgVoodoo at all, but
+      some games lay out their interface for 4:3 and will stretch.
+
+  GeneralExt.WindowedAttributes:
+    Type: string
+    DisplayName: Windowed Attributes
+    Description: >
+      Any combination of borderless, alwaysontop and fullscreensize, separated by
+      commas. Leave empty for normal windowed behaviour.
+
+  GeneralExt.SystemHookFlags:
+    Type: string
+    DisplayName: System Hook Flags
+    Description: >
+      Any combination of gdi and cursor, separated by commas. gdi shows content the
+      game draws through GDI, such as older in-engine video playback; cursor
+      suppresses a doubled mouse pointer. 32-bit DirectX only.
+
+  DirectXExt.ExtraEnumeratedResolutions:
+    Type: string
+    DisplayName: Extra Enumerated Resolutions
+    Description: >
+      Up to sixteen additional modes to advertise to the game, comma separated. Use
+      it when a game renders at any resolution but only offers what the adapter
+      reports. Accepts explicit modes, or max, max_4_3 and max_16_9 with an optional
+      @refresh rate.
+
+  DirectXExt.EnumeratedResolutionBitdepths:
+    Type: string
+    DisplayName: Enumerated Resolution Bit Depths
+    Description: >
+      Which colour depths to advertise: all, or any subset of 8, 16 and 32 separated
+      by commas. Narrowing it can steer a game that picks a bad mode on its own.
+
+  # --- Choice options whose only upstream documentation was the list itself ---
+  #
+  # Parse-Config.ps1 deliberately drops a description that just repeats the choices,
+  # rather than printing the dropdown twice. These are the ones worth real prose.
+  General.OutputAPI:
+    DisplayName: Output API
+    Description: >
+      Which modern Direct3D backend presents the wrapped output. bestavailable picks
+      the highest your GPU supports and is almost always right. Pin an older
+      feature level only to work around a driver bug; d3d11warp is Microsoft's
+      software renderer, which is very slow and is for diagnosis only.
+
+  General.ScalingMode:
+    DisplayName: Scaling Mode
+    Description: >
+      How a low-resolution image is fitted to the screen. unspecified follows the
+      control panel default. The _ar variants preserve aspect ratio rather than
+      stretching; stretched_4_3 forces a 4:3 box on a widescreen monitor, which is
+      usually what an old game should look like. The _crt and _c64 variants add
+      period-appropriate scanline filtering.
+
+  Glide.VideoCard:
+    DisplayName: Emulated Video Card
+    Description: >
+      Which 3Dfx card to pretend to be. Games query this and enable features
+      accordingly, so it changes what the game will render. voodoo_2 is the safe
+      default. voodoo_graphics is the original 1996 card, voodoo_rush is the rare
+      2D/3D hybrid, voodoo_banshee and other_greater expose later feature sets that
+      a few games check for before enabling extras.
+
+  Glide.TMUFiltering:
+    DisplayName: Texture Filtering
+    Description: >
+      Override how the emulated texture units filter. appdriven respects whatever
+      the game asks for. pointsampled forces the hard-edged look of the original
+      hardware; bilinear forces smoothing on a game that did not request it.
+
+  GlideExt.DitheringEffect:
+    DisplayName: Dithering Effect
+    Description: >
+      Real Voodoo hardware rendered at 16-bit and dithered to hide banding.
+      pure32bit renders cleanly at full precision, which looks better but not
+      authentic. dither2x2 and dither4x4 reproduce the original matrices.
+
+  GlideExt.Dithering:
+    DisplayName: Dithering
+    Description: >
+      Whether to dither at all. appdriven follows the game, forcealways applies it
+      everywhere, disabled turns it off entirely.
+
+  DirectX.VideoCard:
+    DisplayName: Emulated Video Card
+    Description: >
+      Which card to report to the game. internal3D is dgVoodoo's own fully featured
+      device and is the right answer for nearly everything. svga is a plain 2D
+      device with no 3D acceleration. The named period cards exist for games that
+      check for specific hardware before enabling an effect, or that refuse to start
+      on anything they do not recognise.
+
+  DirectX.Mipmapping:
+    DisplayName: Mipmapping
+    Description: >
+      appdriven leaves mipmapping to the game. disabled turns it off. The autogen
+      options generate mipmaps the game never supplied, which sharply reduces
+      shimmering on distant textures in games that predate the technique.
+
+  DirectXExt.DitheringEffect:
+    DisplayName: Dithering Effect
+    Description: >
+      high_quality uses a modern error-diffusion pass. The ordered variants
+      reproduce the blockier matrices period hardware used.
+
+  DirectXExt.Dithering:
+    DisplayName: Dithering
+    Description: >
+      When to dither. appdriven follows the game, forceon16bit dithers only when the
+      game selects a 16-bit mode, forcealways applies it everywhere, disabled turns
+      it off.
+
+  # --- Descriptions upstream does not provide -------------------------------
+  #
+  # These keys carry no documentation in dgVoodoo.conf, and the ones below are the
+  # ones an administrator is actually likely to reach for.
+  General.FullScreenMode:
+    DisplayName: Full Screen
+    Description: >
+      Force the game full screen, or clear it to force windowed. Windowed mode is
+      often the quickest fix for alt-tab crashes and for multi-monitor setups.
+
+  General.Brightness:
+    DisplayName: Brightness
+    Description: Post-processing brightness as a percentage. 100 leaves the image unchanged.
+
+  General.Color:
+    DisplayName: Saturation
+    Description: Post-processing colour saturation as a percentage. 100 leaves the image unchanged.
+
+  General.Contrast:
+    DisplayName: Contrast
+    Description: Post-processing contrast as a percentage. 100 leaves the image unchanged.
+
+  General.KeepWindowAspectRatio:
+    DisplayName: Keep Window Aspect Ratio
+    Description: Constrain manual window resizing to the game's own aspect ratio.
+
+  General.CaptureMouse:
+    DisplayName: Capture Mouse
+    Description: >
+      Confine the pointer to the game window. Useful for games that lose mouse
+      input at the screen edge on a multi-monitor desktop.
+
+  General.CenterAppWindow:
+    DisplayName: Centre Window
+    Description: Centre the game window on screen when it starts in windowed mode.
+
+  General.EnumerateRefreshRates:
+    DisplayName: Enumerate Refresh Rates
+    Description: >
+      Advertise refresh rates alongside resolutions. A few games enumerate every
+      combination and stall on startup, which is why this is off by default.
+
+  DirectX.Antialiasing:
+    DisplayName: Antialiasing
+    Description: >
+      Force multisampling: off, appdriven to respect the game's own setting, or 2x
+      through 16x if your GPU supports it. Can blur 2D interface elements in older
+      titles.
+
+  DirectX.DisableAndPassThru:
+    DisplayName: Disable and Pass Through
+    Description: >
+      Hand every call straight to the real system DirectX, disabling the wrapper
+      while leaving the files in place. A diagnostic switch: turn it on to confirm a
+      problem is dgVoodoo's doing rather than the game's.
+
+  DirectX.AppControlledScreenMode:
+    DisplayName: App Controlled Screen Mode
+    Description: Let the game choose full screen or windowed itself, rather than forcing it.
+
+  DirectX.DisableAltEnterToToggleScreenMode:
+    DisplayName: Disable Alt+Enter
+    Description: >
+      Stop Alt+Enter switching between full screen and windowed. Worth enabling for
+      games that use Alt+Enter for something of their own.
+
+  DirectX.ForceVerticalSync:
+    DisplayName: Force Vertical Sync
+    Description: >
+      Force vsync regardless of what the game asks for. Fixes tearing, and often
+      also fixes old games whose physics or timers run away on a fast GPU.
+
+  DirectX.PhongShadingWhenPossible:
+    DisplayName: Phong Shading
+    Description: >
+      Shade per pixel instead of per vertex where the fixed-function pipeline allows
+      it. Smooths lighting in early 3D games, at some cost, and is not what the
+      original hardware did.
+
+  DirectX.FastVideoMemoryAccess:
+    DisplayName: Fast Video Memory Access
+    Description: >
+      Speed up direct video memory access at the cost of strict correctness. Helps
+      software-rendering-era games that write pixels themselves; can corrupt output
+      in others.
+
+  DirectX.DgVoodooWatermark:
+    DisplayName: dgVoodoo Watermark
+    Description: >
+      Draw dgVoodoo's logo over the game. Useful once, to confirm the wrapper is
+      actually loading.
+
+  Glide.ForceVerticalSync:
+    DisplayName: Force Vertical Sync
+    Description: Force vsync for Glide output regardless of what the game requests.
+
+  Glide.DisableMipmapping:
+    DisplayName: Disable Mipmapping
+    Description: >
+      Turn off mipmapping entirely. Sharpens distant textures at the cost of
+      shimmering, and matches how some Glide titles were originally meant to look.
+
+  Glide.3DfxWatermark:
+    DisplayName: 3Dfx Watermark
+    Description: Draw the 3Dfx logo, as the original Voodoo drivers did.
+
+  Glide.3DfxSplashScreen:
+    DisplayName: 3Dfx Splash Screen
+    Description: Show the 3Dfx boot splash the original hardware displayed at startup.
+
+  Glide.16BitDepthBuffer:
+    DisplayName: 16-bit Depth Buffer
+    Description: >
+      Use a 16-bit depth buffer as real Voodoo hardware did. Reproduces period-
+      accurate z-fighting; leave off unless a game depends on that behaviour.
+
+  Glide.EnableGlideGammaRamp:
+    DisplayName: Enable Gamma Ramp
+    Description: Let the game set gamma through Glide. Disable if a title washes out the picture.
+
+# Options dropped entirely. Adding one back later is safe; moving one is not, which
+# is why this list starts deliberately narrow.
+Exclude:
+  # Upstream: "This section affects only debug/spec release builds." It does nothing
+  # at all in the release build everyone runs.
+  - Debug.*
+
+  # The config format version stamp (0x287), not a setting. Rewriting it would
+  # misrepresent the file to dgVoodoo.
+  - Version
+
+  # Raw PCI identity spoofing. Only meaningful with a hand-built matching set, and a
+  # wrong value makes a game misdetect the GPU in ways that are hard to diagnose.
+  # AdapterIDType is exposed instead and covers the real use case.
+  - DirectXExt.VendorID
+  - DirectXExt.DeviceID
+  - DirectXExt.SubsystemID
+  - DirectXExt.RevisionID
+
+  # A 32-bit mask over display outputs, meaningful only for multihead D3D9 setups on
+  # a monitor wall. Nothing sensible to render in a form.
+  - DirectXExt.DisplayOutputEnableMask
+
+  # Upstream: "be careful it can EASILY break certain things, not recommended".
+  - DirectXExt.RTTexturesForceScaleAndMSAA
+
+  # Upstream: "forcing is not recommended at all, anyway".
+  - DirectXExt.NPatchTesselationLevel
+
+  # Suppresses a blacklist that exists to work around a real AMD driver bug. Turning
+  # it off reintroduces solid-colour textures on the affected cards.
+  - DirectXExt.SuppressAMDBlacklist
