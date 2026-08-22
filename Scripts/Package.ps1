@@ -11,6 +11,11 @@
 # as a standalone component "must provide the full .zip package", and a server
 # handing it to its own clients is doing exactly that.
 #
+# Hand the result back with New-Package -Path <a DIRECTORY to be archived>
+# -Version <string> [-Changelog <string>]. Path and Version are mandatory, and the
+# server runs this in a runspace with no host, so a bare New-Package cannot prompt
+# for them -- it fails to bind, and the operator sees only "the package script did
+# not return a result".
 # Returning nothing means "no new package required", which is the normal result.
 #
 # Available: $Redistributable (including its current Version) and $LatestArchivePath.
@@ -47,8 +52,19 @@ if (-not $asset) {
     throw "Release $($release.tag_name) has no plain dgVoodoo2 archive. Assets: $listing"
 }
 
-$staging = New-Item -ItemType Directory -Force -Path (Join-Path $env:TEMP "dgVoodoo2-$version")
-$archive = Join-Path $env:TEMP "dgVoodoo2-$version.zip"
+# GetTempPath rather than $env:TEMP, which only exists on Windows. Package is the
+# one script here without a Platforms restriction because it runs on the server,
+# which may be either, so it cannot reach for a Windows-only variable.
+$temp = [System.IO.Path]::GetTempPath()
+
+# Cleared rather than reused. New-Item -Force on an existing directory is a no-op,
+# so a run that failed the layout check below would otherwise leave a half-extracted
+# tree for the next Expand-Archive -Force to merge into rather than replace.
+$stagingPath = Join-Path $temp "dgVoodoo2-$version"
+Remove-Item -LiteralPath $stagingPath -Recurse -Force -ErrorAction SilentlyContinue
+
+$staging = New-Item -ItemType Directory -Force -Path $stagingPath
+$archive = Join-Path $temp "dgVoodoo2-$version.zip"
 
 try {
     Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $archive
@@ -87,10 +103,7 @@ LANCommander project.
 
     Set-Content -LiteralPath (Join-Path $staging 'LICENSE.txt') -Value $terms -Encoding utf8
 
-    $Return = New-Package
-    $Return.Path = $staging.FullName
-    $Return.Version = $version
-    $Return.Changelog = $release.body
+    $Return = New-Package -Path $staging.FullName -Version $version -Changelog $release.body
 }
 finally {
     Remove-Item -LiteralPath $archive -Force -ErrorAction SilentlyContinue
