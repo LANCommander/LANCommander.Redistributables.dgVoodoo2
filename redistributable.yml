@@ -12,16 +12,15 @@ Name: dgVoodoo2
 
 Description: >
   Wraps Glide, DirectDraw and Direct3D 1-9 onto modern Direct3D 11/12, so games
-  written for 3Dfx Voodoo hardware or early DirectX run on current GPUs. Fixes the
+  written for 3Dfx Voodoo hardware or early DirectX are able to run on modern hardware. Fixes the
   black screens, 8-bit palette corruption, broken alt-tab and 640x480 lock that
   late-90s and early-2000s titles hit on Windows 10 and 11. Attach it per game and
   enable only the APIs that game actually uses.
 
 Notes: >
   dgVoodoo2 is (c) 2013-2026 Dege and is proprietary freeware. Its terms forbid
-  bundling it inside a launcher, so no dgVoodoo binaries ship in this package --
-  the Package script downloads the complete upstream archive onto your own server.
-  See LICENSES/NOTICE.md.
+  bundling it inside a launcher, so no dgVoodoo binaries ship in this package .
+  The Package script downloads the complete upstream archive onto your own server.
 
 LastKnownVersion: "2.87.3"
 
