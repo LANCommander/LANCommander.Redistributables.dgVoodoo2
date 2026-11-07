@@ -478,7 +478,7 @@ Options:
     Options:
       AdapterIDType:
         Type: choice
-        Description: "\"nvidia\", \"amd\", \"intel\" or leave it undefined You can define what type of driver version and vendor id's the wrapper should report to the application; Some games rely on that information so it can be useful for them Can be defined only for SVGA and Internal3D card types; the others have their own wired information VendorID, DeviceID, SubsystemID, RevisionID: Can be defined only for SVGA and Internal3D card types You can overwrite these properties even if a non-default AdapterIDType is defined; say, you defined an nvidia id type but would like to refine the vendor id"
+        Description: "\"nvidia\", \"amd\", \"intel\" or leave it undefined You can define what type of driver version and vendor id's the DX API layer should report to the application; Some games rely on that information so it can be useful for them Can be defined only for SVGA and Internal3D card types; the others have their own wired information VendorID, DeviceID, SubsystemID, RevisionID: Can be defined only for SVGA and Internal3D card types You can overwrite these properties even if a non-default AdapterIDType is defined; say, you defined an nvidia id type but would like to refine the vendor id"
         Choices:
         - nvidia
         - amd
@@ -563,7 +563,11 @@ Options:
         Default: "256"
       D3D12BoundsChecking:
         Type: bool
-        Description: If enabled then the D3D12 backend does bound checking on vs const register file accesses (D3D8/9 only) It should always be enabled to be fully compatible with the D3D8/9 specs but unfortunately that can cause performance loss while the vast majority of games do not need it; try to enable it if you experience a GPU crash with a D3D8/9 game
+        Description: If enabled then the D3D12 backend does bound checking on vs const register file accesses (D3D8/9 only) It must be enabled to comply with the D3D8/9 specs but you can disable it for specific cases to have potentially better performance
+        Default: "true"
+      AlternativeScaling:
+        Type: bool
+        Description: If true then 3D drawing upscale calculations are optimized for postprocess type renderpasses (better positioning)
         Default: "false"
       MSD3DDeviceNames:
         Type: bool

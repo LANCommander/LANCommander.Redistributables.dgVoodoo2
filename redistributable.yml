@@ -22,7 +22,7 @@ Notes: >
   bundling it inside a launcher, so no dgVoodoo binaries ship in this package .
   The Package script downloads the complete upstream archive onto your own server.
 
-LastKnownVersion: "2.87.3"
+LastKnownVersion: "2.87.6"
 
 # Payload ----------------------------------------------------------------------
 Source:
